@@ -19,13 +19,11 @@ from app.models import Base
 from app.core.config import settings
 
 target_metadata = Base.metadata
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
 
 def run_migrations_offline() -> None:
-    url = config.get_main_option("sqlalchemy.url")
     context.configure(
-        url=url,
+        url=settings.DATABASE_URL,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -42,7 +40,7 @@ def do_run_migrations(connection) -> None:
 
 async def run_migrations_online() -> None:
     connectable = create_async_engine(
-        config.get_main_option("sqlalchemy.url"),
+        settings.DATABASE_URL,
         poolclass=pool.NullPool,
     )
     async with connectable.connect() as connection:
