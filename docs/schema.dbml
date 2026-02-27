@@ -1,0 +1,73 @@
+// 마씨(Merci) ERD Schema
+// Updated: 2026-02-27 (PRD v4 기준)]
+
+Enum group_role {
+  OWNER
+  MEMBER
+}
+
+Enum recall_result {
+  "기억하심"
+  "가물가물"
+  "낯설어하심"
+}
+
+Table users {
+  id               uuid        [pk, default: `gen_random_uuid()`]
+  provider         varchar(20) [not null, note: 'kakao | naver']
+  provider_user_id varchar(100) [not null, unique]
+  email            varchar(255) [not null]
+  name             varchar(50) [not null]
+  nickname         varchar(50) [null]
+  created_at       timestamp   [not null, default: `now()`]
+}
+
+Table groups {
+  id          uuid        [pk, default: `gen_random_uuid()`]
+  name        varchar(50) [not null, note: '어르신 성함']
+  invite_code varchar(20) [not null, unique]
+  created_by  uuid        [not null, ref: > users.id]
+  created_at  timestamp   [not null, default: `now()`]
+}
+
+Table group_members {
+  group_id  uuid       [not null, ref: > groups.id]
+  user_id   uuid       [not null, ref: > users.id]
+  role      group_role [not null]
+  joined_at timestamp  [not null, default: `now()`]
+
+  indexes {
+    (group_id, user_id) [pk]
+  }
+}
+
+Table memories {
+  id        uuid         [pk, default: `gen_random_uuid()`]
+  group_id  uuid         [not null, ref: > groups.id]
+  image_url varchar(500) [not null]
+  year      int          [not null, note: '연도 (필수)']
+  location  varchar(100) [not null, note: '장소 (필수)']
+  people    varchar(200) [not null, note: '함께한 인물 (필수)']
+  story     text         [not null, note: '이야기 (필수)']
+  voice_url varchar(500) [note: '음성 URL (선택)']
+  created_by uuid        [not null, ref: > users.id]
+  created_at timestamp   [not null, default: `now()`]
+}
+
+
+Table comments {
+  id         uuid      [pk, default: `gen_random_uuid()`]
+  memory_id  uuid      [not null, ref: > memories.id]
+  user_id    uuid      [not null, ref: > users.id]
+  content    text      [not null]
+  created_at timestamp [not null, default: `now()`]
+}
+
+// 회상 기억 로그
+Table recall_logs {
+  id          uuid          [pk, default: `gen_random_uuid()`]
+  memory_id   uuid          [not null, ref: > memories.id]
+  result      recall_result [not null]
+  recorded_by uuid          [not null, ref: > users.id]
+  visited_at  timestamp     [not null]
+}

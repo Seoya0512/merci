@@ -1,0 +1,21 @@
+# 환경변수 (민감 정보)
+.env
+.env.dev
+.env.prod
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Alembic 마이그레이션 파일 (자동 생성)
+# alembic/versions/ 는 추적 대상 - .gitkeep만 유지
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
