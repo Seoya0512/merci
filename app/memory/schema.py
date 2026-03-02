@@ -4,6 +4,7 @@ from datetime import datetime, date
 
 
 class MemoryCreateRequest(BaseModel):
+    title: str
     image_url: str
     year: int
     location: str
@@ -13,6 +14,7 @@ class MemoryCreateRequest(BaseModel):
 
 
 class MemoryUpdateRequest(BaseModel):
+    title: str | None = None
     image_url: str | None = None
     year: int | None = None
     location: str | None = None
@@ -26,6 +28,7 @@ class MemoryResponse(BaseModel):
 
     id: UUID
     group_id: UUID
+    title: str
     image_url: str
     year: int
     location: str
