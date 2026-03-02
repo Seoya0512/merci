@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
+    # Redis
+    REDIS_URL: str = "redis://localhost:6379"
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+
     # OAuth - Kakao
     KAKAO_CLIENT_ID: str = ""
     KAKAO_REDIRECT_URI: str = ""

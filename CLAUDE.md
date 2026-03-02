@@ -16,6 +16,7 @@ PRD 전체 내용은 `docs/prd.md` 를 참고한다.
 | DB | PostgreSQL |
 | 인증 | OAuth 2.0 (카카오 / 네이버) + JWT |
 | 파일 스토리지 | AWS S3 (or Supabase Storage) |
+| 캐시 / 세션 | Redis (dev: Docker, prod: Upstash 등 별도 서비스) |
 | 유효성 검증 | Pydantic v2 |
 | 마이그레이션 | Alembic |
 | 환경변수 | python-dotenv (.env) |
@@ -77,6 +78,11 @@ requirements.txt
 - DB 접근은 항상 `async / await` 사용
 - SQLAlchemy `AsyncSession` 사용
 
+### 트랜잭션
+- `get_db`가 `session.begin()`으로 트랜잭션을 관리한다. 요청 성공 시 자동 commit, 예외 발생 시 자동 rollback.
+- 서비스 레이어에서 `commit()` / `rollback()`을 직접 호출하지 않는다. `db.add()` 까지만 담당.
+- 감사 로그, 백그라운드 작업 등 별도 트랜잭션이 필요한 경우 `AsyncSessionLocal()`로 새 세션을 직접 열어 사용한다.
+
 ### 에러 처리
 - HTTPException 사용
 - 공통 에러 메시지는 `core/exceptions.py` 에 정의
@@ -131,8 +137,11 @@ AWS_REGION=ap-northeast-2
 ## API 엔드포인트 구조 (예정)
 
 ```
-POST   /auth/kakao/callback
-POST   /auth/naver/callback
+GET    /auth/kakao/authorize
+POST   /auth/kakao/login
+GET    /auth/naver/authorize
+POST   /auth/naver/login
+POST   /auth/refresh
 POST   /auth/logout
 
 PATCH  /users/me/nickname
