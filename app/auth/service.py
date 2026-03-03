@@ -2,6 +2,7 @@ import uuid
 from datetime import timedelta
 
 import httpx
+from fastapi import HTTPException, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -74,6 +75,7 @@ async def issue_kakao_token(code: str) -> str:
             data={
                 "grant_type": "authorization_code",
                 "client_id": settings.KAKAO_CLIENT_ID,
+                "client_secret": settings.KAKAO_CLIENT_SECRET,
                 "redirect_uri": settings.KAKAO_REDIRECT_URI,
                 "code": code,
             },
@@ -99,6 +101,12 @@ async def get_kakao_user_info(kakao_access_token: str) -> dict:
     return resp.json()
 
 
+_PROVIDER_DISPLAY_NAME = {
+    "kakao": "카카오",
+    "naver": "네이버",
+}
+
+
 async def get_or_create_user(
     db: AsyncSession,
     provider: str,
@@ -106,18 +114,34 @@ async def get_or_create_user(
     email: str,
     name: str,
 ) -> User:
+    # 동일 provider + provider_user_id로 기존 유저 조회 (일반 로그인)
     result = await db.execute(
-        select(User).where(User.provider_user_id == provider_user_id)
+        select(User).where(
+            User.provider == provider,
+            User.provider_user_id == provider_user_id,
+        )
     )
     user = result.scalar_one_or_none()
+    if user is not None:
+        return user
 
-    if user is None:
-        user = User(
-            provider=provider,
-            provider_user_id=provider_user_id,
-            email=email,
-            name=name,
-        )
-        db.add(user)
+    # 동일 이메일로 다른 provider 가입 여부 확인
+    if email:
+        result = await db.execute(select(User).where(User.email == email))
+        existing = result.scalar_one_or_none()
+        if existing is not None:
+            existing_provider = _PROVIDER_DISPLAY_NAME.get(existing.provider, existing.provider)
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"{existing_provider}로 이미 가입하셨어요. {existing_provider}로 로그인해 주세요.",
+            )
 
+    user = User(
+        id=uuid.uuid4(),
+        provider=provider,
+        provider_user_id=provider_user_id,
+        email=email,
+        name=name,
+    )
+    db.add(user)
     return user
