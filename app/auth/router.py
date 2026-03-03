@@ -63,12 +63,14 @@ async def kakao_login(
         )
 
     kakao_account = profile.get("kakao_account", {})
+    nickname = kakao_account.get("profile", {}).get("nickname", "")
     user = await service.get_or_create_user(
         db=db,
         provider="kakao",
         provider_user_id=str(profile["id"]),
         email=kakao_account.get("email", ""),
-        name=kakao_account.get("profile", {}).get("nickname", ""),
+        name=nickname,
+        nickname=nickname,
     )
 
     access_token = create_access_token(user.id)
@@ -126,6 +128,7 @@ async def naver_login(
         provider_user_id=profile["id"],
         email=profile.get("email", ""),
         name=profile.get("name", ""),
+        nickname=profile.get("name", ""),
     )
 
     access_token = create_access_token(user.id)

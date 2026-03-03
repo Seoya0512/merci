@@ -113,6 +113,7 @@ async def get_or_create_user(
     provider_user_id: str,
     email: str,
     name: str,
+    nickname: str,
 ) -> User:
     # 동일 provider + provider_user_id로 기존 유저 조회 (일반 로그인)
     result = await db.execute(
@@ -142,6 +143,7 @@ async def get_or_create_user(
         provider_user_id=provider_user_id,
         email=email,
         name=name,
+        nickname=nickname,
     )
     db.add(user)
     return user
