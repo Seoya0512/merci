@@ -1,4 +1,5 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+from pydantic.aliases import AliasPath
 from uuid import UUID
 from datetime import datetime
 from app.models import GroupRole
@@ -12,12 +13,17 @@ class GroupJoinRequest(BaseModel):
     invite_code: str
 
 
+class GroupMemberRelationRequest(BaseModel):
+    relation: str
+
+
 class GroupMemberResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
     user_id: UUID
-    nickname: str | None
+    name: str = Field(validation_alias=AliasPath("user", "name"))
     role: GroupRole
+    relation: str | None = None
     joined_at: datetime
 
 

@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -9,10 +11,20 @@ from app.recall.router import router as recall_router
 from app.comment.router import router as comment_router
 from app.upload.router import router as upload_router
 from app.core.config import settings
+from app.core.redis import close_redis, init_redis
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_redis(settings.REDIS_URL)
+    yield
+    await close_redis()
+
 
 app = FastAPI(
     title="마씨(Merci) API",
     version="0.1.0",
+    lifespan=lifespan,
     docs_url="/docs" if settings.SHOW_DOCS else None,
     redoc_url="/redoc" if settings.SHOW_DOCS else None,
 )

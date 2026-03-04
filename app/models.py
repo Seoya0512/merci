@@ -53,6 +53,7 @@ class GroupMember(Base):
     group_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("groups.id"), primary_key=True)
     user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"), primary_key=True)
     role: Mapped[GroupRole] = mapped_column(Enum(GroupRole), nullable=False)
+    relation: Mapped[str | None] = mapped_column(String(50), nullable=True)
     joined_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
 
     group: Mapped["Group"] = relationship(back_populates="members")
@@ -64,6 +65,7 @@ class Memory(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     group_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("groups.id"), nullable=False)
+    title: Mapped[str] = mapped_column(String(100), nullable=False)
     image_url: Mapped[str] = mapped_column(String(500), nullable=False)
     year: Mapped[int] = mapped_column(Integer, nullable=False)
     location: Mapped[str] = mapped_column(String(100), nullable=False)
