@@ -13,5 +13,5 @@ class PresignedUrlRequest(BaseModel):
 
 
 class PresignedUrlResponse(BaseModel):
-    upload_url: str  # S3 presigned PUT URL
-    file_url: str    # 업로드 후 접근할 파일 URL
+    upload_url: str   # presigned PUT URL (temp 경로, 15분 유효)
+    object_key: str   # 예: "temp/images/550e8400.jpg" — POST /memories 에 전달

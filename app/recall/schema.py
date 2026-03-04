@@ -1,12 +1,12 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from uuid import UUID
 from datetime import datetime
 from app.models import RecallResult
 
 
 class RecallCreateRequest(BaseModel):
-    result: RecallResult
-    visited_at: datetime
+    result: RecallResult = Field(..., description="`기억하심` / `가물가물` / `낯설어하심` 중 하나")
+    visited_at: datetime = Field(..., description="어르신과 함께 추억을 본 날짜 및 시각 (예: 2026-03-03T14:00:00)")
 
 
 class RecallResponse(BaseModel):
@@ -14,6 +14,6 @@ class RecallResponse(BaseModel):
 
     id: UUID
     memory_id: UUID
-    result: RecallResult
-    recorded_by: UUID
-    visited_at: datetime
+    result: RecallResult = Field(..., description="회상 결과: `기억하심` / `가물가물` / `낯설어하심`")
+    recorded_by: UUID = Field(..., description="기록한 가족 구성원의 user_id")
+    visited_at: datetime = Field(..., description="어르신과 함께 추억을 본 날짜")

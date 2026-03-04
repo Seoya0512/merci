@@ -34,6 +34,7 @@ Table group_members {
   group_id  uuid       [not null, ref: > groups.id]
   user_id   uuid       [not null, ref: > users.id]
   role      group_role [not null]
+  relation  varchar(50) [null, note: '어르신과의 관계 (예: 딸, 아들)']
   joined_at timestamp  [not null, default: `now()`]
 
   indexes {
@@ -44,6 +45,7 @@ Table group_members {
 Table memories {
   id        uuid         [pk, default: `gen_random_uuid()`]
   group_id  uuid         [not null, ref: > groups.id]
+  title     varchar(100) [not null, note: '추억 제목']
   image_url varchar(500) [not null]
   year      int          [not null, note: '연도 (필수)']
   location  varchar(100) [not null, note: '장소 (필수)']

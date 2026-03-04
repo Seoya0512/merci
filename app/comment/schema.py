@@ -19,4 +19,4 @@ class CommentResponse(BaseModel):
     user_id: UUID
     content: str
     created_at: datetime
-    author_nickname: str | None = None
+    author_name: str | None = None
