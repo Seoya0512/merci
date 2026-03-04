@@ -16,6 +16,7 @@ from app.group.service import (
     update_relation,
 )
 from app.core.dependencies import get_current_user, get_db
+from app.core.responses import AUTH_RESPONSES, NOT_FOUND, CONFLICT
 from app.models import User
 
 router = APIRouter()
@@ -26,6 +27,7 @@ router = APIRouter()
     response_model=InviteCodeResponse,
     status_code=201,
     summary="그룹 생성",
+    responses={**AUTH_RESPONSES, **CONFLICT},
 )
 async def create_group_endpoint(
     body: GroupCreateRequest,
@@ -47,6 +49,7 @@ async def create_group_endpoint(
     "/join",
     response_model=GroupResponse,
     summary="초대 코드로 그룹 참여",
+    responses={**AUTH_RESPONSES, **NOT_FOUND, **CONFLICT},
 )
 async def join_group_endpoint(
     body: GroupJoinRequest,
@@ -67,6 +70,7 @@ async def join_group_endpoint(
     "/me",
     response_model=GroupResponse,
     summary="내 그룹 조회",
+    responses={**AUTH_RESPONSES, **NOT_FOUND},
 )
 async def get_my_group_endpoint(
     current_user: User = Depends(get_current_user),
@@ -84,6 +88,7 @@ async def get_my_group_endpoint(
     "/me/invite-code",
     response_model=InviteCodeResponse,
     summary="내 그룹 초대 코드 조회",
+    responses={**AUTH_RESPONSES, **NOT_FOUND},
 )
 async def get_invite_code_endpoint(
     current_user: User = Depends(get_current_user),
@@ -103,6 +108,7 @@ async def get_invite_code_endpoint(
     "/me/relation",
     response_model=GroupResponse,
     summary="어르신과의 관계 수정",
+    responses={**AUTH_RESPONSES, **NOT_FOUND},
 )
 async def update_relation_endpoint(
     body: GroupMemberRelationRequest,

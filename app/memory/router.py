@@ -7,15 +7,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.memory.schema import MemoryCreateRequest, MemoryUpdateRequest, MemoryResponse
 from app.memory import service
-from app.core.dependencies import get_current_user
-from app.core.database import get_db
+from app.core.dependencies import get_current_user, get_db
+from app.core.responses import AUTH_RESPONSES, BAD_REQUEST, NOT_FOUND
 from app.models import User
 
 router = APIRouter()
-
-
-def _to_response(data: dict) -> MemoryResponse:
-    return MemoryResponse(**{**data["memory"], "has_badge": data["has_badge"]})
 
 
 @router.post(
@@ -23,6 +19,7 @@ def _to_response(data: dict) -> MemoryResponse:
     response_model=MemoryResponse,
     status_code=201,
     summary="추억 등록",
+    responses={**AUTH_RESPONSES, **BAD_REQUEST},
 )
 async def create_memory(
     body: MemoryCreateRequest,
@@ -34,14 +31,14 @@ async def create_memory(
     파일(사진/음성)은 서버를 경유하지 않고 Cloudflare R2에 직접 업로드한 후 해당 API를 사용합니다. 
     - 참고 API: `POST /uploads/presigned-url` → R2에 업로드할 때 사용할 `object_key` 발급
     """
-    data = await service.create_memory(db, body, current_user)
-    return _to_response(data)
+    return await service.create_memory(db, body, current_user)
 
 
 @router.get(
     "",
     response_model=list[MemoryResponse],
     summary="추억 목록 조회",
+    responses=AUTH_RESPONSES,
 )
 async def list_memories(
     from_date: Optional[date] = Query(None, description="조회 시작일 (YYYY-MM-DD), year 기준 필터"),
@@ -57,14 +54,14 @@ async def list_memories(
     Cloudflare R2 버킷이 private으로 설정되어 있으므로, 이 URL 없이는 파일에 접근할 수 없습니다.
     URL이 만료된 경우 이 API를 다시 호출하여 갱신된 URL을 사용하세요.
     """
-    results = await service.list_memories(db, current_user, from_date, to_date, created_by)
-    return [_to_response(r) for r in results]
+    return await service.list_memories(db, current_user, from_date, to_date, created_by)
 
 
 @router.get(
     "/{memory_id}",
     response_model=MemoryResponse,
     summary="추억 단건 조회",
+    responses={**AUTH_RESPONSES, **NOT_FOUND},
 )
 async def get_memory(
     memory_id: UUID,
@@ -83,14 +80,14 @@ async def get_memory(
     **응답의 image_url / voice_url** 은 **1시간 유효한 presigned GET URL**입니다.
     URL이 만료된 경우 이 API를 다시 호출하여 갱신된 URL을 사용하세요.
     """
-    data = await service.get_memory(db, memory_id, current_user)
-    return _to_response(data)
+    return await service.get_memory(db, memory_id, current_user)
 
 
 @router.patch(
     "/{memory_id}",
     response_model=MemoryResponse,
     summary="추억 수정",
+    responses={**AUTH_RESPONSES, **BAD_REQUEST, **NOT_FOUND},
 )
 async def update_memory(
     memory_id: UUID,
@@ -112,14 +109,14 @@ async def update_memory(
 
     **수정 권한**: 추억을 등록한 본인만 수정할 수 있습니다.
     """
-    data = await service.update_memory(db, memory_id, body, current_user)
-    return _to_response(data)
+    return await service.update_memory(db, memory_id, body, current_user)
 
 
 @router.delete(
     "/{memory_id}",
     status_code=204,
     summary="추억 삭제",
+    responses={**AUTH_RESPONSES, **NOT_FOUND},
 )
 async def delete_memory(
     memory_id: UUID,

@@ -4,8 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.recall.schema import RecallCreateRequest, RecallResponse
 from app.recall import service
-from app.core.dependencies import get_current_user
-from app.core.database import get_db
+from app.core.dependencies import get_current_user, get_db
+from app.core.responses import AUTH_RESPONSES, NOT_FOUND
 from app.models import User
 
 router = APIRouter()
@@ -16,6 +16,7 @@ router = APIRouter()
     response_model=RecallResponse,
     status_code=201,
     summary="회상 결과 기록",
+    responses={**AUTH_RESPONSES, **NOT_FOUND},
 )
 async def create_recall(
     memory_id: UUID,
@@ -40,6 +41,7 @@ async def create_recall(
     "/{memory_id}/recalls",
     response_model=list[RecallResponse],
     summary="회상 이력 조회",
+    responses={**AUTH_RESPONSES, **NOT_FOUND},
 )
 async def list_recalls(
     memory_id: UUID,

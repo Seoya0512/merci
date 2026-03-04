@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.users.schema import UserResponse, UserUpdateRequest
 from app.users import service
 from app.core.dependencies import get_current_user, get_db
+from app.core.responses import AUTH_RESPONSES
 from app.models import User
 
 router = APIRouter()
@@ -13,6 +14,7 @@ router = APIRouter()
     "/me",
     response_model=UserResponse,
     summary="내 프로필 조회",
+    responses=AUTH_RESPONSES,
 )
 async def get_me(
     current_user: User = Depends(get_current_user),
@@ -32,6 +34,7 @@ async def get_me(
     "/me",
     response_model=UserResponse,
     summary="내 닉네임 수정",
+    responses=AUTH_RESPONSES,
 )
 async def update_me(
     body: UserUpdateRequest,
