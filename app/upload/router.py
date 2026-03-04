@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from app.upload.schema import PresignedUrlRequest, PresignedUrlResponse
 from app.upload.service import create_presigned_url
 from app.core.dependencies import get_current_user
+from app.core.responses import AUTH_RESPONSES, BAD_REQUEST
 from app.models import User
 
 router = APIRouter()
