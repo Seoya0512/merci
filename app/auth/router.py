@@ -15,8 +15,9 @@ from app.auth.schema import (
     TokenResponse,
 )
 from app.core.config import settings
-from app.core.database import get_db
+from app.core.dependencies import get_db
 from app.core.redis import get_redis
+from app.core.responses import AUTH_RESPONSES, BAD_REQUEST
 from app.core.security import create_access_token, create_refresh_token
 
 router = APIRouter()
@@ -48,6 +49,7 @@ async def kakao_auth_url():
     "/kakao/login",
     response_model=TokenResponse,
     summary="카카오 로그인",
+    responses=BAD_REQUEST,
 )
 async def kakao_login(
     body: KakaoCallbackRequest,
@@ -122,6 +124,7 @@ async def naver_auth_url():
     "/naver/login",
     response_model=TokenResponse,
     summary="네이버 로그인",
+    responses=BAD_REQUEST,
 )
 async def naver_login(
     body: NaverCallbackRequest,
@@ -168,6 +171,7 @@ async def naver_login(
     "/refresh",
     response_model=TokenResponse,
     summary="Access Token 재발급",
+    responses={401: AUTH_RESPONSES[401]},
 )
 async def refresh(body: RefreshTokenRequest):
     """

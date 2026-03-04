@@ -4,15 +4,9 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import GroupMember, Memory, RecallLog
+from app.core.utils import get_membership_or_403
+from app.models import Memory, RecallLog
 from app.recall.schema import RecallCreateRequest
-
-
-async def _get_membership(db: AsyncSession, user_id: uuid_lib.UUID) -> GroupMember | None:
-    result = await db.execute(
-        select(GroupMember).where(GroupMember.user_id == user_id)
-    )
-    return result.scalar_one_or_none()
 
 
 async def _get_memory_in_group(
@@ -30,10 +24,7 @@ async def _get_memory_in_group(
 async def create_recall(
     db: AsyncSession, memory_id: uuid_lib.UUID, body: RecallCreateRequest, current_user
 ) -> RecallLog:
-    membership = await _get_membership(db, current_user.id)
-    if not membership:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="그룹에 소속되어 있지 않습니다.")
-
+    membership = await get_membership_or_403(db, current_user.id)
     await _get_memory_in_group(db, memory_id, membership.group_id)
 
     log = RecallLog(
@@ -50,10 +41,7 @@ async def create_recall(
 async def list_recalls(
     db: AsyncSession, memory_id: uuid_lib.UUID, current_user
 ) -> list[RecallLog]:
-    membership = await _get_membership(db, current_user.id)
-    if not membership:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="그룹에 소속되어 있지 않습니다.")
-
+    membership = await get_membership_or_403(db, current_user.id)
     await _get_memory_in_group(db, memory_id, membership.group_id)
 
     result = await db.execute(

@@ -7,15 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.storage import move_object, delete_object, public_url, object_key_from_url, generate_presigned_get_url
-from app.models import GroupMember, Memory, RecallResult
-from app.memory.schema import MemoryCreateRequest, MemoryUpdateRequest
-
-
-async def _get_membership(db: AsyncSession, user_id: uuid_lib.UUID) -> GroupMember | None:
-    result = await db.execute(
-        select(GroupMember).where(GroupMember.user_id == user_id)
-    )
-    return result.scalar_one_or_none()
+from app.core.utils import get_membership_or_403
+from app.models import Memory, RecallResult
+from app.memory.schema import MemoryCreateRequest, MemoryUpdateRequest, MemoryResponse
 
 
 async def _get_memory_or_404(db: AsyncSession, memory_id: uuid_lib.UUID) -> Memory:
@@ -38,24 +32,24 @@ def _has_badge(memory: Memory) -> bool:
     return most_recent.result == RecallResult.REMEMBERED
 
 
-def _to_signed(memory: Memory) -> dict:
-    """DB에 저장된 URL을 presigned GET URL로 변환한 응답 dict를 반환한다."""
-    return {
-        "id": memory.id,
-        "group_id": memory.group_id,
-        "title": memory.title,
-        "image_url": generate_presigned_get_url(object_key_from_url(memory.image_url)),
-        "year": memory.year,
-        "location": memory.location,
-        "people": memory.people,
-        "story": memory.story,
-        "voice_url": (
+def _to_memory_response(memory: Memory, has_badge: bool) -> MemoryResponse:
+    return MemoryResponse(
+        id=memory.id,
+        group_id=memory.group_id,
+        title=memory.title,
+        image_url=generate_presigned_get_url(object_key_from_url(memory.image_url)),
+        year=memory.year,
+        location=memory.location,
+        people=memory.people,
+        story=memory.story,
+        voice_url=(
             generate_presigned_get_url(object_key_from_url(memory.voice_url))
             if memory.voice_url else None
         ),
-        "created_by": memory.created_by,
-        "created_at": memory.created_at,
-    }
+        created_by=memory.created_by,
+        created_at=memory.created_at,
+        has_badge=has_badge,
+    )
 
 
 def _validate_temp_key(key: str, prefix: str) -> None:
@@ -75,10 +69,8 @@ async def _move_to_permanent(temp_key: str, category: str, group_id: uuid_lib.UU
 
 async def create_memory(
     db: AsyncSession, body: MemoryCreateRequest, current_user
-) -> Memory:
-    membership = await _get_membership(db, current_user.id)
-    if not membership:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="그룹에 소속되어 있지 않습니다.")
+) -> MemoryResponse:
+    membership = await get_membership_or_403(db, current_user.id)
 
     _validate_temp_key(body.image_key, "images")
     if body.voice_key:
@@ -109,7 +101,7 @@ async def create_memory(
         .options(selectinload(Memory.recall_logs))
     )
     saved = result.scalar_one()
-    return {"memory": _to_signed(saved), "has_badge": False}
+    return _to_memory_response(saved, False)
 
 
 async def list_memories(
@@ -118,10 +110,8 @@ async def list_memories(
     from_date: date | None = None,
     to_date: date | None = None,
     created_by: uuid_lib.UUID | None = None,
-) -> list[dict]:
-    membership = await _get_membership(db, current_user.id)
-    if not membership:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="그룹에 소속되어 있지 않습니다.")
+) -> list[MemoryResponse]:
+    membership = await get_membership_or_403(db, current_user.id)
 
     conditions = [Memory.group_id == membership.group_id]
     if from_date:
@@ -138,34 +128,30 @@ async def list_memories(
         .order_by(Memory.created_at.desc())
     )
     memories = result.scalars().all()
-
-    return [{"memory": _to_signed(m), "has_badge": _has_badge(m)} for m in memories]
+    return [_to_memory_response(m, _has_badge(m)) for m in memories]
 
 
 async def get_memory(
     db: AsyncSession, memory_id: uuid_lib.UUID, current_user
-) -> dict:
-    membership = await _get_membership(db, current_user.id)
-    if not membership:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="그룹에 소속되어 있지 않습니다.")
-
+) -> MemoryResponse:
+    membership = await get_membership_or_403(db, current_user.id)
     memory = await _get_memory_or_404(db, memory_id)
 
     if memory.group_id != membership.group_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="접근 권한이 없습니다.")
 
-    return {"memory": _to_signed(memory), "has_badge": _has_badge(memory)}
+    return _to_memory_response(memory, _has_badge(memory))
 
 
 async def update_memory(
     db: AsyncSession, memory_id: uuid_lib.UUID, body: MemoryUpdateRequest, current_user
-) -> dict:
+) -> MemoryResponse:
     memory = await _get_memory_or_404(db, memory_id)
 
     if memory.created_by != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="수정 권한이 없습니다.")
 
-    membership = await _get_membership(db, current_user.id)
+    membership = await get_membership_or_403(db, current_user.id)
 
     if body.image_key is not None:
         _validate_temp_key(body.image_key, "images")
@@ -175,7 +161,6 @@ async def update_memory(
 
     if body.voice_key is not None:
         if body.voice_key == "":
-            # 빈 문자열 = 음성 삭제
             if memory.voice_url:
                 await delete_object(object_key_from_url(memory.voice_url))
             memory.voice_url = None
@@ -199,7 +184,7 @@ async def update_memory(
     db.add(memory)
     await db.flush()
 
-    return {"memory": _to_signed(memory), "has_badge": _has_badge(memory)}
+    return _to_memory_response(memory, _has_badge(memory))
 
 
 async def delete_memory(

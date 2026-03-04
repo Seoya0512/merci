@@ -12,6 +12,7 @@ router = APIRouter()
     "/presigned-url",
     response_model=PresignedUrlResponse,
     summary="파일 업로드용 Presigned URL 발급",
+    responses={**AUTH_RESPONSES, **BAD_REQUEST},
 )
 async def get_presigned_url(
     body: PresignedUrlRequest,

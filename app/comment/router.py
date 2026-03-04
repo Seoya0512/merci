@@ -5,6 +5,7 @@ from uuid import UUID
 from app.comment.schema import CommentCreateRequest, CommentUpdateRequest, CommentResponse
 from app.comment import service
 from app.core.dependencies import get_current_user, get_db
+from app.core.responses import AUTH_RESPONSES, NOT_FOUND
 from app.models import User
 
 router = APIRouter()
@@ -14,6 +15,7 @@ router = APIRouter()
     "/{memory_id}/comments",
     response_model=list[CommentResponse],
     summary="댓글 목록 조회",
+    responses={**AUTH_RESPONSES, **NOT_FOUND},
 )
 async def get_comments(
     memory_id: UUID,
@@ -33,6 +35,7 @@ async def get_comments(
     response_model=CommentResponse,
     status_code=201,
     summary="댓글 등록",
+    responses={**AUTH_RESPONSES, **NOT_FOUND},
 )
 async def create_comment(
     memory_id: UUID,
@@ -52,6 +55,7 @@ async def create_comment(
     "/{memory_id}/comments/{comment_id}",
     response_model=CommentResponse,
     summary="댓글 수정",
+    responses={**AUTH_RESPONSES, **NOT_FOUND},
 )
 async def update_comment(
     memory_id: UUID,
@@ -72,6 +76,7 @@ async def update_comment(
     "/{memory_id}/comments/{comment_id}",
     status_code=204,
     summary="댓글 삭제",
+    responses={**AUTH_RESPONSES, **NOT_FOUND},
 )
 async def delete_comment(
     memory_id: UUID,

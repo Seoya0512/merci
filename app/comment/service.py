@@ -6,20 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.comment.schema import CommentCreateRequest, CommentUpdateRequest, CommentResponse
-from app.models import Comment, GroupMember, Memory, User
+from app.core.utils import get_membership_or_403
+from app.models import Comment, Memory, User
 
 
-async def _get_group_id(db: AsyncSession, user: User) -> UUID:
-    result = await db.execute(
-        select(GroupMember.group_id).where(GroupMember.user_id == user.id)
-    )
-    group_id = result.scalar_one_or_none()
-    if group_id is None:
-        raise HTTPException(status_code=403, detail="그룹에 속해 있지 않습니다.")
-    return group_id
-
-
-async def _get_memory(db: AsyncSession, memory_id: UUID, group_id: UUID) -> Memory:
+async def _get_memory_in_group(db: AsyncSession, memory_id: UUID, group_id: UUID) -> Memory:
     result = await db.execute(
         select(Memory).where(Memory.id == memory_id, Memory.group_id == group_id)
     )
@@ -41,8 +32,8 @@ def _to_response(comment: Comment) -> CommentResponse:
 
 
 async def list_comments(db: AsyncSession, memory_id: UUID, current_user: User) -> list[CommentResponse]:
-    group_id = await _get_group_id(db, current_user)
-    await _get_memory(db, memory_id, group_id)
+    membership = await get_membership_or_403(db, current_user.id)
+    await _get_memory_in_group(db, memory_id, membership.group_id)
 
     result = await db.execute(
         select(Comment)
@@ -57,8 +48,8 @@ async def list_comments(db: AsyncSession, memory_id: UUID, current_user: User) -
 async def create_comment(
     db: AsyncSession, memory_id: UUID, body: CommentCreateRequest, current_user: User
 ) -> CommentResponse:
-    group_id = await _get_group_id(db, current_user)
-    await _get_memory(db, memory_id, group_id)
+    membership = await get_membership_or_403(db, current_user.id)
+    await _get_memory_in_group(db, memory_id, membership.group_id)
 
     comment = Comment(
         memory_id=memory_id,
@@ -75,8 +66,8 @@ async def create_comment(
 async def update_comment(
     db: AsyncSession, memory_id: UUID, comment_id: UUID, body: CommentUpdateRequest, current_user: User
 ) -> CommentResponse:
-    group_id = await _get_group_id(db, current_user)
-    await _get_memory(db, memory_id, group_id)
+    membership = await get_membership_or_403(db, current_user.id)
+    await _get_memory_in_group(db, memory_id, membership.group_id)
 
     result = await db.execute(
         select(Comment)
@@ -97,8 +88,8 @@ async def update_comment(
 async def delete_comment(
     db: AsyncSession, memory_id: UUID, comment_id: UUID, current_user: User
 ) -> None:
-    group_id = await _get_group_id(db, current_user)
-    await _get_memory(db, memory_id, group_id)
+    membership = await get_membership_or_403(db, current_user.id)
+    await _get_memory_in_group(db, memory_id, membership.group_id)
 
     result = await db.execute(
         select(Comment).where(Comment.id == comment_id, Comment.memory_id == memory_id)
