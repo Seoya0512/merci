@@ -85,7 +85,7 @@ class RecallLog(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     memory_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("memories.id"), nullable=False)
-    result: Mapped[RecallResult] = mapped_column(Enum(RecallResult), nullable=False)
+    result: Mapped[RecallResult] = mapped_column(Enum(RecallResult, values_callable=lambda x: [e.value for e in x]), nullable=False)
     recorded_by: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"), nullable=False)
     visited_at: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
 
