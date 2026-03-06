@@ -1,4 +1,5 @@
 import uuid as uuid_lib
+from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -31,7 +32,7 @@ async def create_recall(
         memory_id=memory_id,
         result=body.result,
         recorded_by=current_user.id,
-        visited_at=body.visited_at,
+        visited_at=datetime.now(timezone.utc).replace(tzinfo=None),
     )
     db.add(log)
     await db.flush()

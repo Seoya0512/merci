@@ -1,5 +1,4 @@
 import uuid as uuid_lib
-from datetime import date
 
 from fastapi import HTTPException, status
 from sqlalchemy import select, and_
@@ -107,17 +106,17 @@ async def create_memory(
 async def list_memories(
     db: AsyncSession,
     current_user,
-    from_date: date | None = None,
-    to_date: date | None = None,
+    from_year: int | None = None,
+    to_year: int | None = None,
     created_by: uuid_lib.UUID | None = None,
 ) -> list[MemoryResponse]:
     membership = await get_membership_or_403(db, current_user.id)
 
     conditions = [Memory.group_id == membership.group_id]
-    if from_date:
-        conditions.append(Memory.year >= from_date.year)
-    if to_date:
-        conditions.append(Memory.year <= to_date.year)
+    if from_year:
+        conditions.append(Memory.year >= from_year)
+    if to_year:
+        conditions.append(Memory.year <= to_year)
     if created_by:
         conditions.append(Memory.created_by == created_by)
 

@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload
 
 from app.comment.schema import CommentCreateRequest, CommentUpdateRequest, CommentResponse
 from app.core.utils import get_membership_or_403
-from app.models import Comment, Memory, User
+from app.models import Comment, Memory, User, GroupMember
 
 
 async def _get_memory_in_group(db: AsyncSession, memory_id: UUID, group_id: UUID) -> Memory:
@@ -20,7 +20,11 @@ async def _get_memory_in_group(db: AsyncSession, memory_id: UUID, group_id: UUID
     return memory
 
 
-def _to_response(comment: Comment) -> CommentResponse:
+def _to_response(comment: Comment, group_id: UUID) -> CommentResponse:
+    relation = next(
+        (m.relation for m in comment.user.group_memberships if m.group_id == group_id),
+        None,
+    ) if comment.user else None
     return CommentResponse(
         id=comment.id,
         memory_id=comment.memory_id,
@@ -28,6 +32,7 @@ def _to_response(comment: Comment) -> CommentResponse:
         content=comment.content,
         created_at=comment.created_at,
         author_name=comment.user.name if comment.user else None,
+        relation=relation,
     )
 
 
@@ -38,11 +43,11 @@ async def list_comments(db: AsyncSession, memory_id: UUID, current_user: User) -
     result = await db.execute(
         select(Comment)
         .where(Comment.memory_id == memory_id)
-        .options(selectinload(Comment.user))
+        .options(selectinload(Comment.user).selectinload(User.group_memberships))
         .order_by(Comment.created_at.asc())
     )
     comments = result.scalars().all()
-    return [_to_response(c) for c in comments]
+    return [_to_response(c, membership.group_id) for c in comments]
 
 
 async def create_comment(
@@ -60,7 +65,8 @@ async def create_comment(
     await db.flush()
 
     await db.refresh(comment, ["user"])
-    return _to_response(comment)
+    await db.refresh(comment.user, ["group_memberships"])
+    return _to_response(comment, membership.group_id)
 
 
 async def update_comment(
@@ -72,7 +78,7 @@ async def update_comment(
     result = await db.execute(
         select(Comment)
         .where(Comment.id == comment_id, Comment.memory_id == memory_id)
-        .options(selectinload(Comment.user))
+        .options(selectinload(Comment.user).selectinload(User.group_memberships))
     )
     comment = result.scalar_one_or_none()
     if comment is None:
@@ -82,7 +88,7 @@ async def update_comment(
 
     comment.content = body.content
     db.add(comment)
-    return _to_response(comment)
+    return _to_response(comment, membership.group_id)
 
 
 async def delete_comment(

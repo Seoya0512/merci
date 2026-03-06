@@ -20,3 +20,4 @@ class CommentResponse(BaseModel):
     content: str
     created_at: datetime
     author_name: str | None = None
+    relation: str | None = None

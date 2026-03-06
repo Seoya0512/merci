@@ -6,7 +6,6 @@ from app.models import RecallResult
 
 class RecallCreateRequest(BaseModel):
     result: RecallResult = Field(..., description="`기억하심` / `가물가물` / `낯설어하심` 중 하나")
-    visited_at: datetime = Field(..., description="어르신과 함께 추억을 본 날짜 및 시각 (예: 2026-03-03T14:00:00)")
 
 
 class RecallResponse(BaseModel):

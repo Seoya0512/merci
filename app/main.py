@@ -24,6 +24,12 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="마씨(Merci) API",
     version="0.1.0",
+    description="""
+## 공통 사항
+
+**날짜/시각 필드 (`created_at`, `visited_at` 등)** 는 모두 **UTC 기준**으로 반환됩니다.
+화면에 표시할 때는 KST(+09:00)로 변환하세요.
+""",
     lifespan=lifespan,
     docs_url="/docs" if settings.SHOW_DOCS else None,
     redoc_url="/redoc" if settings.SHOW_DOCS else None,

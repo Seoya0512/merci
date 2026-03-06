@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, Query
 from uuid import UUID
-from datetime import date
 from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -41,8 +40,8 @@ async def create_memory(
     responses=AUTH_RESPONSES,
 )
 async def list_memories(
-    from_date: Optional[date] = Query(None, description="조회 시작일 (YYYY-MM-DD), year 기준 필터"),
-    to_date: Optional[date] = Query(None, description="조회 종료일 (YYYY-MM-DD), year 기준 필터"),
+    from_year: Optional[int] = Query(None, description="조회 시작 연도 (YYYY)"),
+    to_year: Optional[int] = Query(None, description="조회 종료 연도 (YYYY)"),
     created_by: Optional[UUID] = Query(None, description="특정 작성자의 추억만 조회할 경우 user_id"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -54,7 +53,7 @@ async def list_memories(
     Cloudflare R2 버킷이 private으로 설정되어 있으므로, 이 URL 없이는 파일에 접근할 수 없습니다.
     URL이 만료된 경우 이 API를 다시 호출하여 갱신된 URL을 사용하세요.
     """
-    return await service.list_memories(db, current_user, from_date, to_date, created_by)
+    return await service.list_memories(db, current_user, from_year, to_year, created_by)
 
 
 @router.get(
